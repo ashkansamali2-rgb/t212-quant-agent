@@ -1,0 +1,8 @@
+.venv/
+venv/
+*.pyc
+__pycache__/
+*.log
+.env
+paper_ledger.csv
+t212_paper_ledger.csv
