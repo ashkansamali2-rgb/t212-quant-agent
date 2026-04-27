@@ -81,6 +81,15 @@ def job():
             if action in ['BUY', 'SELL']:
                 logging.info(f"Signal triggered! Action: {action} for {ticker}")
                 
+                # Smart Execution Logic
+                if action == 'SELL' and ticker not in active_positions:
+                    logging.info(f"[SKIP] SELL signal for {ticker} but no position owned.")
+                    continue
+                    
+                if action == 'BUY' and ticker in active_positions:
+                    logging.info(f"[SKIP] BUY signal for {ticker} but position already exists.")
+                    continue
+                
                 if not t212_client.validate_keys():
                     logging.error("API keys missing. Cannot execute trade.")
                     continue
