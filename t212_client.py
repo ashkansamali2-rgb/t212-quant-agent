@@ -26,13 +26,13 @@ def validate_keys():
         return False
     return True
 
-def execute_t212_market_order(ticker, action, quantity, dry_run=False):
+def execute_t212_limit_order(ticker, action, quantity, limit_price, dry_run=False):
     """
     Targets Demo Invest endpoint with _US_EQ suffix.
     action: "BUY" or "SELL"
     """
     mapped_ticker = f"{ticker}_US_EQ"
-    url = f"{T212_API_BASE}/orders/market"
+    url = f"{T212_API_BASE}/orders/limit"
     headers = get_auth_header()
     if headers is None:
         print("[ERROR] Could not generate auth headers.")
@@ -43,10 +43,14 @@ def execute_t212_market_order(ticker, action, quantity, dry_run=False):
     # Buy: positive, Sell: negative
     # Mapped from strategy actions to API quantities
     final_quantity = abs(quantity) if action == "BUY" else -abs(quantity)
-    payload = {"ticker": mapped_ticker, "quantity": final_quantity}
+    payload = {
+        "ticker": mapped_ticker, 
+        "quantity": final_quantity,
+        "limitPrice": limit_price
+    }
 
     if dry_run:
-        msg = f"[DRY RUN] Would execute {action} order for {mapped_ticker} with quantity {final_quantity}"
+        msg = f"[DRY RUN] Would execute {action} order for {mapped_ticker} with quantity {final_quantity} at limit {limit_price}"
         print(msg)
         return True, msg
 

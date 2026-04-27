@@ -10,7 +10,7 @@ import ledger
 
 # --- Configuration ---
 DRY_RUN = False  # Set to False to execute real trades
-TARGET_BET_SIZE_EURO = 500
+MAX_RISK_PER_TRADE_EURO = 25
 LOG_FILE = "bot_execution.log"
 
 # Setup Logging
@@ -94,17 +94,19 @@ def job():
                     logging.error("API keys missing. Cannot execute trade.")
                     continue
 
-                # Calculate position sizing based on target euro amount
-                quantity = round(TARGET_BET_SIZE_EURO / latest_price, 2)
+                # Calculate risk-based position sizing
+                per_share_risk = latest_price * 0.025
+                quantity = round(MAX_RISK_PER_TRADE_EURO / per_share_risk, 2)
 
                 # For sells, use the quantity we actually have in the ledger if available
                 if action == 'SELL' and ticker in active_positions:
                     quantity = float(active_positions[ticker]['quantity'])
 
-                success, response = t212_client.execute_t212_market_order(
+                success, response = t212_client.execute_t212_limit_order(
                     ticker=ticker,
                     action=action,
                     quantity=quantity,
+                    limit_price=latest_price,
                     dry_run=DRY_RUN
                 )
                 
