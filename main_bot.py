@@ -8,7 +8,7 @@ from data_engine import DataEngine
 from strategy import evaluate_strategy
 
 # --- Configuration ---
-DRY_RUN = True  # Set to False to execute real trades
+DRY_RUN = False  # Set to False to execute real trades
 TICKERS = ["NVDA", "AAPL", "TSLA", "AMD", "MSFT", "AMZN", "META", "GOOGL", "NFLX", "COIN"]
 TRADE_QUANTITY = 1
 LOG_FILE = "bot_execution.log"
