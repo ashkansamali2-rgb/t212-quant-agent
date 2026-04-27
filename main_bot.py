@@ -4,14 +4,13 @@ import schedule
 import pytz
 from datetime import datetime
 import t212_client
-from data_engine import DataEngine
+from data_engine import DataEngine, get_top_gainers
 from strategy import evaluate_strategy
 import ledger
 
 # --- Configuration ---
 DRY_RUN = False  # Set to False to execute real trades
-TICKERS = ["NVDA", "AAPL", "TSLA", "AMD", "MSFT", "AMZN", "META", "GOOGL", "NFLX", "COIN"]
-TRADE_QUANTITY = 1
+TARGET_BET_SIZE_EURO = 500
 LOG_FILE = "bot_execution.log"
 
 # Setup Logging
@@ -46,20 +45,30 @@ def job():
         return
 
     logging.info("--- Starting Strategy Evaluation Cycle ---")
-    engine = DataEngine(TICKERS)
+    active_positions = ledger.get_active_positions()
+    logging.info(f"Current active positions: {list(active_positions.keys())}")
     
-    for ticker in TICKERS:
+    # Fetch dynamic universe (20 highest volume)
+    dynamic_tickers = get_top_gainers()
+    
+    # Ensure active positions are evaluated even if they fall out of top 20
+    universe = list(set(dynamic_tickers).union(set(active_positions.keys())))
+    
+    engine = DataEngine(universe)
+    
+    for ticker in universe:
         try:
             df = engine.get_processed_data(ticker)
             if df is None or len(df) < 2:
                 logging.warning(f"Insufficient data for {ticker}")
                 continue
             
-            result = evaluate_strategy(df)
+            result = evaluate_strategy(ticker, df)
             action = result['action']
+            reason = result.get('reason', 'MA_CROSS')
             
-            latest_price = df['Close'].iloc[-1]
-            logging.info(f"Ticker: {ticker} | Price: {latest_price:.2f} | Strategy Result: {action}")
+            latest_price = float(df['Close'].iloc[-1])
+            logging.info(f"Ticker: {ticker} | Price: {latest_price:.2f} | Strategy Result: {action} ({reason})")
 
             if action in ['BUY', 'SELL']:
                 logging.info(f"Signal triggered! Action: {action} for {ticker}")
@@ -68,37 +77,28 @@ def job():
                     logging.error("API keys missing. Cannot execute trade.")
                     continue
 
+                # Calculate position sizing based on target euro amount
+                quantity = float(TARGET_BET_SIZE_EURO / latest_price)
+
+                # For sells, use the quantity we actually have in the ledger if available
+                if action == 'SELL' and ticker in active_positions:
+                    quantity = float(active_positions[ticker]['quantity'])
+
                 success, response = t212_client.execute_t212_market_order(
                     ticker=ticker,
                     action=action,
-                    quantity=TRADE_QUANTITY,
+                    quantity=quantity,
                     dry_run=DRY_RUN
                 )
                 
                 if success:
                     logging.info(f"Trade successful for {ticker}: {response}")
-                else:
-                    logging.error(f"Trade failed for {ticker}: {response}")
-                    
-        except Exception as e:
-            logging.error(f"Error processing {ticker}: {e}")
-
-def main():
-    logging.info(f"Bot started. Dry Run: {DRY_RUN}")
-    
-    # Run once immediately on start
-    job()
-    
-    # Schedule every 15 minutes
-    schedule.every(15).minutes.do(job)
-    
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
-
-if __name__ == "__main__":
-    main()
-g.info(f"Removed {ticker} from ledger.")
+                    if action == 'BUY':
+                        ledger.add_position(ticker, latest_price, quantity)
+                        logging.info(f"Logged BUY for {ticker} in ledger.")
+                    elif action == 'SELL':
+                        ledger.remove_position(ticker)
+                        logging.info(f"Removed {ticker} from ledger.")
                 else:
                     logging.error(f"Trade failed for {ticker}: {response}")
                     

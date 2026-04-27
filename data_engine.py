@@ -1,6 +1,21 @@
 import yfinance as yf
 import pandas as pd
 
+def get_top_gainers():
+    """
+    Uses yfinance to pull a list of the 20 highest-volume stocks 
+    currently trading in the US market.
+    """
+    try:
+        response = yf.screen("most_actives")
+        if 'quotes' in response:
+            symbols = [q['symbol'] for q in response['quotes']]
+            return symbols[:20]
+    except Exception as e:
+        print(f"[!] Error fetching top gainers: {e}")
+    # Fallback list if screener fails or structure changes
+    return ["NVDA", "AAPL", "TSLA", "AMD", "MSFT", "AMZN", "META", "GOOGL", "NFLX", "COIN"]
+
 class DataEngine:
     def __init__(self, tickers):
         self.tickers = tickers

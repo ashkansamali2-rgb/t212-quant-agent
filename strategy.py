@@ -14,10 +14,10 @@ def evaluate_strategy(ticker, df):
     latest_price = df['Close'].iloc[-1]
     positions = ledger.get_active_positions()
     
-    # Trailing Stop-Loss: Drop > 2% from entry price
+    # Trailing Stop-Loss: Drop > 2.5% from entry price
     if ticker in positions:
         entry_price = positions[ticker]['price']
-        if latest_price < entry_price * 0.98:
+        if latest_price < entry_price * 0.975:
             return {'action': 'SELL', 'reason': 'STOP_LOSS'}
     
     # Required indicators check
