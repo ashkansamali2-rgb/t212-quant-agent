@@ -6,6 +6,7 @@ from datetime import datetime
 import t212_client
 from data_engine import DataEngine
 from strategy import evaluate_strategy
+import ledger
 
 # --- Configuration ---
 DRY_RUN = False  # Set to False to execute real trades
@@ -76,6 +77,28 @@ def job():
                 
                 if success:
                     logging.info(f"Trade successful for {ticker}: {response}")
+                else:
+                    logging.error(f"Trade failed for {ticker}: {response}")
+                    
+        except Exception as e:
+            logging.error(f"Error processing {ticker}: {e}")
+
+def main():
+    logging.info(f"Bot started. Dry Run: {DRY_RUN}")
+    
+    # Run once immediately on start
+    job()
+    
+    # Schedule every 15 minutes
+    schedule.every(15).minutes.do(job)
+    
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+if __name__ == "__main__":
+    main()
+g.info(f"Removed {ticker} from ledger.")
                 else:
                     logging.error(f"Trade failed for {ticker}: {response}")
                     

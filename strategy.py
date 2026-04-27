@@ -1,6 +1,7 @@
 import pandas as pd # Needed for pd.isna
+import ledger
 
-def evaluate_strategy(df):
+def evaluate_strategy(ticker, df):
     """
     Fast Day-Trading Moving Average Crossover strategy:
     - If SMA_9 crosses strictly ABOVE SMA_21 AND RSI_14 < 70: Return {'action': 'BUY'}.
@@ -9,6 +10,15 @@ def evaluate_strategy(df):
     """
     if df is None or len(df) < 2:
         return {'action': 'HOLD'}
+
+    latest_price = df['Close'].iloc[-1]
+    positions = ledger.get_active_positions()
+    
+    # Trailing Stop-Loss: Drop > 2% from entry price
+    if ticker in positions:
+        entry_price = positions[ticker]['price']
+        if latest_price < entry_price * 0.98:
+            return {'action': 'SELL', 'reason': 'STOP_LOSS'}
     
     # Required indicators check
     if 'SMA_9' not in df.columns or 'SMA_21' not in df.columns or 'RSI_14' not in df.columns:
