@@ -97,13 +97,17 @@ def job():
                         ledger.add_position(ticker, latest_price, quantity)
                         logging.info(f"Logged BUY for {ticker} in ledger.")
                     elif action == 'SELL':
-                        ledger.remove_position(ticker)
+                        ledger.remove_position(ticker, latest_price)
                         logging.info(f"Removed {ticker} from ledger.")
                 else:
                     logging.error(f"Trade failed for {ticker}: {response}")
                     
         except Exception as e:
             logging.error(f"Error processing {ticker}: {e}")
+
+    # Log analytics at the end of cycle
+    realized_pnl = ledger.get_realized_pnl()
+    logging.info(f"--- Cycle Complete | Total Realized PnL: €{realized_pnl:.2f} ---")
 
 def main():
     logging.info(f"Bot started. Dry Run: {DRY_RUN}")

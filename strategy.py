@@ -40,7 +40,7 @@ def evaluate_strategy(ticker, df):
     # SMA_9 crosses strictly BELOW SMA_21
     is_cross_below = (previous['SMA_9'] >= previous['SMA_21']) and (latest['SMA_9'] < latest['SMA_21'])
 
-    if is_cross_above and latest['RSI_14'] < 70:
+    if is_cross_above and latest['RSI_14'] < 70 and latest.get('ADX_14', 0) > 25:
         action = 'BUY'
     elif is_cross_below:
         action = 'SELL'

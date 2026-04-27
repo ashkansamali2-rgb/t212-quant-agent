@@ -16,6 +16,48 @@ def get_top_gainers():
     # Fallback list if screener fails or structure changes
     return ["NVDA", "AAPL", "TSLA", "AMD", "MSFT", "AMZN", "META", "GOOGL", "NFLX", "COIN"]
 
+def calculate_adx(df, window=14):
+    """
+    Computes Average Directional Index (ADX) to measure trend strength.
+    """
+    if df is None or len(df) < window * 2:
+        if df is not None:
+            df['ADX_14'] = 0
+        return df
+    
+    high = df['High']
+    low = df['Low']
+    close = df['Close']
+    
+    # TR
+    tr1 = high - low
+    tr2 = (high - close.shift(1)).abs()
+    tr3 = (low - close.shift(1)).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    
+    # DM+ and DM-
+    up = high - high.shift(1)
+    down = low.shift(1) - low
+    
+    pos_dm = up.where((up > down) & (up > 0), 0.0)
+    neg_dm = down.where((down > up) & (down > 0), 0.0)
+    
+    # Smoothed TR, DM+, DM-
+    tr_smooth = tr.ewm(alpha=1/window, adjust=False).mean()
+    pos_dm_smooth = pos_dm.ewm(alpha=1/window, adjust=False).mean()
+    neg_dm_smooth = neg_dm.ewm(alpha=1/window, adjust=False).mean()
+    
+    # DI+ and DI-
+    pos_di = 100 * (pos_dm_smooth / tr_smooth)
+    neg_di = 100 * (neg_dm_smooth / tr_smooth)
+    
+    # DX and ADX
+    dx = 100 * (pos_di - neg_di).abs() / (pos_di + neg_di)
+    adx = dx.ewm(alpha=1/window, adjust=False).mean()
+    
+    df['ADX_14'] = adx
+    return df
+
 class DataEngine:
     def __init__(self, tickers):
         self.tickers = tickers
@@ -41,7 +83,7 @@ class DataEngine:
 
     def add_indicators(self, df):
         """
-        Append columns for the 9-period SMA, 21-period SMA, and 14-period RSI.
+        Append columns for the 9-period SMA, 21-period SMA, 14-period RSI, and ADX.
         """
         if df is None or len(df) < 21:
             return df
@@ -60,6 +102,9 @@ class DataEngine:
         
         rs = avg_gain / avg_loss
         df['RSI_14'] = 100 - (100 / (1 + rs))
+        
+        # Calculate ADX
+        df = calculate_adx(df)
         
         return df
 
