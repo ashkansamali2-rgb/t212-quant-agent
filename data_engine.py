@@ -5,7 +5,7 @@ class DataEngine:
     def __init__(self, tickers):
         self.tickers = tickers
 
-    def fetch_data(self, ticker, period="1y", interval="1d"):
+    def fetch_data(self, ticker, period="5d", interval="5m"):
         """
         Fetch historical and live price data for a specified ticker.
         Columns: Open, High, Low, Close, Volume
@@ -26,14 +26,14 @@ class DataEngine:
 
     def add_indicators(self, df):
         """
-        Append columns for the 50-period SMA, 200-period SMA, and 14-period RSI.
+        Append columns for the 9-period SMA, 21-period SMA, and 14-period RSI.
         """
-        if df is None or len(df) < 200:
+        if df is None or len(df) < 21:
             return df
         
         # Calculate SMAs
-        df['SMA_50'] = df['Close'].rolling(window=50).mean()
-        df['SMA_200'] = df['Close'].rolling(window=200).mean()
+        df['SMA_9'] = df['Close'].rolling(window=9).mean()
+        df['SMA_21'] = df['Close'].rolling(window=21).mean()
         
         # Calculate RSI (14-period)
         delta = df['Close'].diff()
