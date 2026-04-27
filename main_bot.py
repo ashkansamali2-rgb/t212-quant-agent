@@ -39,9 +39,44 @@ def is_market_open():
     
     return start_time <= now <= end_time
 
+def check_eod_liquidation():
+    tz = pytz.timezone('US/Eastern')
+    now = datetime.now(tz)
+    
+    start_time = now.replace(hour=15, minute=45, second=0, microsecond=0)
+    end_time = now.replace(hour=16, minute=0, second=0, microsecond=0)
+    
+    if start_time <= now <= end_time:
+        logging.info("[EOD LIQUIDATION] Flattening portfolio for market close.")
+        active_positions = ledger.get_active_positions()
+        if active_positions:
+            engine = DataEngine(list(active_positions.keys()))
+            for ticker, data in active_positions.items():
+                try:
+                    df = engine.get_processed_data(ticker)
+                    latest_price = data['price']
+                    if df is not None and not df.empty:
+                        latest_price = float(df['Close'].iloc[-1])
+                        
+                    t212_client.execute_t212_limit_order(
+                        ticker=ticker,
+                        action='SELL',
+                        quantity=float(data['quantity']),
+                        limit_price=latest_price,
+                        dry_run=DRY_RUN
+                    )
+                    ledger.remove_position(ticker, latest_price)
+                except Exception as e:
+                    logging.error(f"Failed to liquidate {ticker}: {e}")
+        return True
+    return False
+
 def job():
     if not is_market_open():
         logging.info("Market is currently closed. Skipping execution.")
+        return
+        
+    if check_eod_liquidation():
         return
 
     logging.info("--- Starting Strategy Evaluation Cycle ---")
