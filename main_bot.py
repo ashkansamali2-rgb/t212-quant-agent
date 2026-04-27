@@ -95,7 +95,7 @@ def job():
                     continue
 
                 # Calculate position sizing based on target euro amount
-                quantity = float(TARGET_BET_SIZE_EURO / latest_price)
+                quantity = round(TARGET_BET_SIZE_EURO / latest_price, 2)
 
                 # For sells, use the quantity we actually have in the ledger if available
                 if action == 'SELL' and ticker in active_positions:
