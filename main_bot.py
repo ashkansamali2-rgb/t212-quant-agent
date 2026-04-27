@@ -169,8 +169,8 @@ def main():
     # Run once immediately on start
     job()
     
-    # Schedule every 15 minutes
-    schedule.every(15).minutes.do(job)
+    # Schedule every 5 minutes
+    schedule.every(5).minutes.do(job)
     
     while True:
         schedule.run_pending()
