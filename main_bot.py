@@ -55,6 +55,7 @@ def job():
     universe = list(set(dynamic_tickers).union(set(active_positions.keys())))
     
     engine = DataEngine(universe)
+    unrealized_pnl = 0.0
     
     for ticker in universe:
         try:
@@ -68,6 +69,13 @@ def job():
             reason = result.get('reason', 'MA_CROSS')
             
             latest_price = float(df['Close'].iloc[-1])
+            
+            # Calculate unrealized PnL for active positions
+            if ticker in active_positions:
+                entry_price = active_positions[ticker]['price']
+                quantity = active_positions[ticker]['quantity']
+                unrealized_pnl += (latest_price - entry_price) * quantity
+
             logging.info(f"Ticker: {ticker} | Price: {latest_price:.2f} | Strategy Result: {action} ({reason})")
 
             if action in ['BUY', 'SELL']:
@@ -107,7 +115,7 @@ def job():
 
     # Log analytics at the end of cycle
     realized_pnl = ledger.get_realized_pnl()
-    logging.info(f"--- Cycle Complete | Total Realized PnL: €{realized_pnl:.2f} ---")
+    logging.info(f"--- Cycle Complete | Total Realized PnL: €{realized_pnl:.2f} | Total Unrealized PnL: €{unrealized_pnl:.2f} ---")
 
 def main():
     logging.info(f"Bot started. Dry Run: {DRY_RUN}")
