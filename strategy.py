@@ -1,48 +1,46 @@
-import pandas as pd # Needed for pd.isna
+import pandas as pd
 import ledger
 
 def evaluate_strategy(ticker, df):
     """
-    Fast Day-Trading Moving Average Crossover strategy:
-    - If SMA_9 crosses strictly ABOVE SMA_21 AND RSI_14 < 70: Return {'action': 'BUY'}.
-    - If SMA_9 crosses strictly BELOW SMA_21: Return {'action': 'SELL'}.
-    - Otherwise: Return {'action': 'HOLD'}.
+    High-Frequency Bollinger Band Mean Reversion Strategy:
+    - BUY if current price < Lower_Band.
+    - SELL if current price > Upper_Band.
+    - CLOSE (flatten position) if we own the stock and price crosses back over the MA20.
     """
     if df is None or len(df) < 2:
         return {'action': 'HOLD'}
 
-    latest_price = df['Close'].iloc[-1]
+    latest = df.iloc[-1]
+    previous = df.iloc[-2]
+    latest_price = float(latest['Close'])
     positions = ledger.get_active_positions()
     
-    # Trailing Stop-Loss: Drop > 2.5% from entry price
+    # Required indicators check
+    if 'MA20' not in df.columns or 'Upper_Band' not in df.columns or 'Lower_Band' not in df.columns:
+        return {'action': 'HOLD'}
+
+    # Handle potential NaN values
+    if pd.isna(latest['MA20']) or pd.isna(latest['Upper_Band']) or pd.isna(latest['Lower_Band']):
+        return {'action': 'HOLD'}
+
+    # Strategy Logic
     if ticker in positions:
+        # Exit logic for active positions
+        if latest_price > latest['Upper_Band']:
+            return {'action': 'SELL', 'reason': 'UPPER_BAND_TOUCH'}
+        
+        # Close if price crosses back over the MA20 (from below to above)
+        if previous['Close'] < previous['MA20'] and latest_price >= latest['MA20']:
+            return {'action': 'SELL', 'reason': 'MEAN_REVERSION_EXIT'}
+            
+        # Optional: Keep the trailing stop-loss from previous version for safety
         entry_price = positions[ticker]['price']
         if latest_price < entry_price * 0.975:
             return {'action': 'SELL', 'reason': 'STOP_LOSS'}
-    
-    # Required indicators check
-    if 'SMA_9' not in df.columns or 'SMA_21' not in df.columns or 'RSI_14' not in df.columns:
-        return {'action': 'HOLD'}
+    else:
+        # Entry logic
+        if latest_price < latest['Lower_Band']:
+            return {'action': 'BUY', 'reason': 'LOWER_BAND_TOUCH'}
 
-    # We need at least the last two rows to detect a crossover
-    latest = df.iloc[-1]
-    previous = df.iloc[-2]
-    
-    # Handle potential NaN values
-    if any(pd.isna([latest['SMA_9'], latest['SMA_21'], previous['SMA_9'], previous['SMA_21']])):
-        return {'action': 'HOLD'}
-
-    action = 'HOLD'
-
-    # SMA_9 crosses strictly ABOVE SMA_21
-    is_cross_above = (previous['SMA_9'] <= previous['SMA_21']) and (latest['SMA_9'] > latest['SMA_21'])
-    
-    # SMA_9 crosses strictly BELOW SMA_21
-    is_cross_below = (previous['SMA_9'] >= previous['SMA_21']) and (latest['SMA_9'] < latest['SMA_21'])
-
-    if is_cross_above and latest['RSI_14'] < 70 and latest.get('ADX_14', 0) > 25:
-        action = 'BUY'
-    elif is_cross_below:
-        action = 'SELL'
-
-    return {'action': action}
+    return {'action': 'HOLD'}

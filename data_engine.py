@@ -62,7 +62,7 @@ class DataEngine:
     def __init__(self, tickers):
         self.tickers = tickers
 
-    def fetch_data(self, ticker, period="5d", interval="5m"):
+    def fetch_data(self, ticker, period="1d", interval="1m"):
         """
         Fetch historical and live price data for a specified ticker.
         Columns: Open, High, Low, Close, Volume
@@ -83,28 +83,20 @@ class DataEngine:
 
     def add_indicators(self, df):
         """
-        Append columns for the 9-period SMA, 21-period SMA, 14-period RSI, and ADX.
+        Append columns for the 20-period MA and Bollinger Bands (Upper/Lower).
         """
-        if df is None or len(df) < 21:
+        if df is None or len(df) < 20:
             return df
         
-        # Calculate SMAs
-        df['SMA_9'] = df['Close'].rolling(window=9).mean()
-        df['SMA_21'] = df['Close'].rolling(window=21).mean()
+        # Calculate MA20
+        df['MA20'] = df['Close'].rolling(window=20).mean()
         
-        # Calculate RSI (14-period)
-        delta = df['Close'].diff()
-        gain = (delta.where(delta > 0, 0))
-        loss = (-delta.where(delta < 0, 0))
+        # Calculate Standard Deviation
+        df['STD20'] = df['Close'].rolling(window=20).std()
         
-        avg_gain = gain.rolling(window=14).mean()
-        avg_loss = loss.rolling(window=14).mean()
-        
-        rs = avg_gain / avg_loss
-        df['RSI_14'] = 100 - (100 / (1 + rs))
-        
-        # Calculate ADX
-        df = calculate_adx(df)
+        # Calculate Bollinger Bands
+        df['Upper_Band'] = df['MA20'] + (2 * df['STD20'])
+        df['Lower_Band'] = df['MA20'] - (2 * df['STD20'])
         
         return df
 

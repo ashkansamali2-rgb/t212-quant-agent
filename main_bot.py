@@ -43,7 +43,7 @@ def check_eod_liquidation():
     tz = pytz.timezone('US/Eastern')
     now = datetime.now(tz)
     
-    start_time = now.replace(hour=15, minute=45, second=0, microsecond=0)
+    start_time = now.replace(hour=15, minute=55, second=0, microsecond=0)
     end_time = now.replace(hour=16, minute=0, second=0, microsecond=0)
     
     if start_time <= now <= end_time:
@@ -169,8 +169,8 @@ def main():
     # Run once immediately on start
     job()
     
-    # Schedule every 5 minutes
-    schedule.every(5).minutes.do(job)
+    # Schedule every 1 minute
+    schedule.every(1).minutes.do(job)
     
     while True:
         schedule.run_pending()

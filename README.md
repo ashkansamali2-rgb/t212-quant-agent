@@ -1,6 +1,6 @@
-# T212 Quant Agent
+# T212 Quant Agent (High-Frequency Mean Reversion)
 
-An automated, quantitative day-trading system built for the Trading 212 API.
+An automated, quantitative day-trading system built for the Trading 212 API, now pivoted to a high-frequency Bollinger Band strategy.
 
 ## Core Architecture
 
@@ -9,33 +9,38 @@ This project is built using:
 - **pandas**: Used for fast, vectorized mathematical operations and technical indicator calculations.
 - **yfinance**: Utilized for fetching live market data and dynamic stock screening.
 
-## The Strategy (The Brain)
+## The Strategy (Mean Reversion)
 
-The agent operates on a systematic, rule-based approach:
-- **Timeframe**: Evaluates the market on a 5-minute interval.
+The agent operates on a systematic, rule-based mean reversion approach:
+- **Timeframe**: Evaluates the market on a **1-minute** interval (60-second heartbeat).
 - **Dynamic Universe**: Continuously scans for the top 20 most active US stocks to ensure sufficient liquidity and volatility.
-- **Momentum Detection**: Utilizes a fast 9-period and 21-period Simple Moving Average (SMA) crossover system.
-- **Trend Strength**: Incorporates an Average Directional Index (ADX) filter. Buy signals are only validated if the ADX is strictly greater than 25, preventing "whipsawing" and false signals in flat, ranging markets.
+- **Indicators**: 
+    - **MA20**: 20-period Simple Moving Average.
+    - **Bollinger Bands**: MA20 +/- (2 * 20-period Standard Deviation).
+- **Logic**:
+    - **BUY**: If current price < Lower Band.
+    - **SELL (Profit Take)**: If current price > Upper Band.
+    - **CLOSE (Mean Exit)**: If a position is held and price crosses back over the MA20 (the Mean).
 
 ## Risk Management (The Armor)
 
-Strict capital protection rules are enforced automatically on every single trade:
+Strict capital protection rules are enforced automatically:
 - **Risk-Adjusted Sizing**: Position sizing is dynamically calculated based on volatility to risk a maximum of exactly €25 per trade.
-- **Trailing Stop-Loss**: A strict 2.5% trailing stop-loss is actively tracked to cut losses early if a trade moves against the position.
-- **Limit Orders**: Executes limit orders strictly at the current evaluated market price to prevent adverse execution slippage.
-- **End-Of-Day (EOD) Liquidation**: A specialized function flattens the entire portfolio between 3:45 PM and 4:00 PM EST, ensuring zero overnight gap risk.
+- **Trailing Stop-Loss**: A strict 2.5% trailing stop-loss is actively tracked as a safety fallback.
+- **Limit Orders**: Executes limit orders strictly at the current evaluated market price to prevent slippage.
+- **End-Of-Day (EOD) Liquidation**: A specialized function flattens the entire portfolio at **3:55 PM EST**, ensuring zero overnight gap risk.
 
 ## System State & Memory
 
-The bot maintains a persistent, local state to ensure reliable and safe execution across reboots:
+The bot maintains a persistent, local state:
 - **Ledger Tracking**: `ledger.py` reads and writes to an `active_positions.csv` file to track all open and closed trades.
-- **Execution Protection**: This state memory prevents illegal short-selling (selling assets not owned), stops the bot from "doubling up" on existing positions, and acts as the source of truth for calculating Realized and Unrealized PnL.
+- **Execution Protection**: Prevents illegal short-selling, stops "doubling up" on existing positions, and tracks Realized/Unrealized PnL.
 
 ## Setup & Execution
 
 ### Prerequisites
-1. Clone the repository to your local environment.
-2. Create a virtual environment and install the required dependencies:
+1. Clone the repository.
+2. Create a virtual environment and install dependencies:
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
@@ -43,14 +48,14 @@ The bot maintains a persistent, local state to ensure reliable and safe executio
    ```
 
 ### Configuration
-Create a `.env` file in the root directory with your Trading 212 Demo or Live API credentials:
+Create a `.env` file with your Trading 212 credentials:
 ```env
 T212_API_KEY=your_api_key_here
 T212_API_SECRET=your_api_secret_here
 ```
 
 ### Execution
-Start the quantitative trading engine:
+Start the engine:
 ```bash
 ./.venv/bin/python main_bot.py
 ```
