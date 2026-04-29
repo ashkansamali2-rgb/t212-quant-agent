@@ -1,5 +1,6 @@
 import yfinance as yf
 import pandas as pd
+import time
 
 def get_top_gainers():
     """
@@ -101,6 +102,8 @@ class DataEngine:
         return df
 
     def get_processed_data(self, ticker):
+        # Throttle to prevent API rate limits during scanning
+        time.sleep(0.5)
         df = self.fetch_data(ticker)
         if df is not None:
             df = self.add_indicators(df)

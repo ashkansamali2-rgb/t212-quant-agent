@@ -9,7 +9,7 @@ def evaluate_strategy(ticker, df):
     - CLOSE (flatten position) if we own the stock and price crosses back over the MA20.
     """
     if df is None or len(df) < 2:
-        return {'action': 'HOLD'}
+        return {'action': 'HOLD', 'reason': 'MEAN_REVERSION'}
 
     latest = df.iloc[-1]
     previous = df.iloc[-2]
@@ -18,11 +18,11 @@ def evaluate_strategy(ticker, df):
     
     # Required indicators check
     if 'MA20' not in df.columns or 'Upper_Band' not in df.columns or 'Lower_Band' not in df.columns:
-        return {'action': 'HOLD'}
+        return {'action': 'HOLD', 'reason': 'MEAN_REVERSION'}
 
     # Handle potential NaN values
     if pd.isna(latest['MA20']) or pd.isna(latest['Upper_Band']) or pd.isna(latest['Lower_Band']):
-        return {'action': 'HOLD'}
+        return {'action': 'HOLD', 'reason': 'MEAN_REVERSION'}
 
     # Strategy Logic
     if ticker in positions:
@@ -43,4 +43,4 @@ def evaluate_strategy(ticker, df):
         if latest_price < latest['Lower_Band']:
             return {'action': 'BUY', 'reason': 'LOWER_BAND_TOUCH'}
 
-    return {'action': 'HOLD'}
+    return {'action': 'HOLD', 'reason': 'MEAN_REVERSION'}

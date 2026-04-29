@@ -1,6 +1,7 @@
 import os
 import base64
 import requests
+import time
 from dotenv import load_dotenv
 
 # Load Environment Variables
@@ -57,6 +58,10 @@ def execute_t212_limit_order(ticker, action, quantity, limit_price, dry_run=Fals
     print(f"[*] Executing {action} order for {mapped_ticker}...")
     try:
         response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 429:
+            print(f"[ERROR] API Rate Limit (429). Throttling required.")
+            return False, "Rate limit exceeded"
+            
         if response.status_code in [200, 201, 202]:
             print(f"[SUCCESS] Order filled for {mapped_ticker}")
             return True, response.json()

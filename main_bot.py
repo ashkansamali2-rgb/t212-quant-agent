@@ -11,6 +11,7 @@ import ledger
 # --- Configuration ---
 DRY_RUN = False  # Set to False to execute real trades
 MAX_RISK_PER_TRADE_EURO = 25
+MAX_CONCURRENT_POSITIONS = 3
 LOG_FILE = "bot_execution.log"
 
 # Setup Logging
@@ -101,7 +102,7 @@ def job():
             
             result = evaluate_strategy(ticker, df)
             action = result['action']
-            reason = result.get('reason', 'MA_CROSS')
+            reason = result.get('reason', 'MEAN_REVERSION')
             
             latest_price = float(df['Close'].iloc[-1])
             
@@ -123,6 +124,10 @@ def job():
                     
                 if action == 'BUY' and ticker in active_positions:
                     logging.info(f"[SKIP] BUY signal for {ticker} but position already exists.")
+                    continue
+                
+                if action == 'BUY' and len(active_positions) >= MAX_CONCURRENT_POSITIONS:
+                    logging.info(f"[SKIP] Portfolio at maximum capacity (3). Skipping BUY signal.")
                     continue
                 
                 if not t212_client.validate_keys():
